@@ -1,0 +1,5 @@
+.vscode/
+*.c8
+*.ch8
+*.Identifier
+*workspace
