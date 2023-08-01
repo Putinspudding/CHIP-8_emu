@@ -13,15 +13,17 @@ public:
     Chip8CPU();
     bool reset();
     bool loadRom();
-    BYTE screenData[64 * 32];
+    BYTE screenData[64][32];
     bool executeNextOpcode();
     void decreaseTimers();
     void test();
-    uint32_t *pixels;
+    uint32_t pixels[32][64];
 
 private:
     WORD nextOpcode();
     void playBeep();
+    void opcodeDecode0(WORD opcode);
+    void opcode_00E0(WORD opcode);
     void opcode_00EE(WORD opcode);
     void opcode_1NNN(WORD opcode);
     void opcode_2NNN(WORD opcode);
@@ -43,7 +45,7 @@ private:
     void opcode_9XY0(WORD opcode);
     void opcode_ANNN(WORD opcode);
     void opcode_BNNN(WORD opcode);
-    void opcode_CNNN(WORD opcode);
+    void opcode_CXNN(WORD opcode);
     void opcode_DXYN(WORD opcode);
     void opcodeDecodeE(WORD opcode);
     void opcode_EX9E(WORD opcode);

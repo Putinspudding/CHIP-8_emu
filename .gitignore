@@ -3,3 +3,4 @@
 *.ch8
 *.Identifier
 *workspace
+.gitignore

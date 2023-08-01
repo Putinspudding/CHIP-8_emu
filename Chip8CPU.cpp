@@ -2,19 +2,30 @@
 #include <cstdlib>
 #include <SDL2/SDL.h>
 #include <iostream>
+#include <string.h>
 
 bool Chip8CPU::loadRom()
 {
     FILE *in;
-    in = fopen("./test_opcode.ch8", "rb");
+    char fileName[100];
+    scanf("%s", fileName);
+    in = fopen(fileName, "rb");
+    // in = fopen("./pong2.c8", "rb");
     fread(&memory[0x200], 0xfff, 1, in);
     fclose(in);
+    for (int i = 0; i < 32; ++i)
+    {
+        for (int j = 0; j < 64; ++j)
+        {
+            pixels[i][j] = 0x0;
+        }
+    }
     return true;
 }
 
 Chip8CPU::Chip8CPU()
 {
-    pixels = new uint32_t[64 * 32];
+    // pixels = new uint32_t[64 * 32];
 }
 
 bool Chip8CPU::reset()
@@ -50,10 +61,13 @@ void Chip8CPU::playBeep()
 bool Chip8CPU::executeNextOpcode()
 {
     WORD opcode = nextOpcode();
-    printf("%x\n----\n", opcode);
+    printf("0X%x\n----\n", opcode);
     // std::cout << opcode << "\n";
     switch (opcode & 0XF000)
     {
+    case 0x0000:
+        opcodeDecode0(opcode);
+        break;
     case 0x1000:
         opcode_1NNN(opcode);
         break;
@@ -88,7 +102,7 @@ bool Chip8CPU::executeNextOpcode()
         opcode_BNNN(opcode);
         break;
     case 0xC000:
-        opcode_CNNN(opcode);
+        opcode_CXNN(opcode);
         break;
     case 0xD000:
         opcode_DXYN(opcode);
@@ -115,6 +129,27 @@ WORD Chip8CPU::nextOpcode()
     return res;
 }
 
+void Chip8CPU::opcodeDecode0(WORD opcode)
+{
+    switch (opcode)
+    {
+    case 0x00E0:
+        opcode_00E0(opcode);
+        break;
+    case 0x00EE:
+        opcode_00EE(opcode);
+        break;
+    default:
+        break;
+    }
+}
+
+void Chip8CPU::opcode_00E0(WORD opcode)
+{
+    for (int i = 0; i < 32; ++i)
+        std::fill(pixels[i], pixels[i] + 64, 0);
+};
+
 void Chip8CPU::opcode_00EE(WORD opcode)
 {
     programCounter = stackM.top();
@@ -123,41 +158,53 @@ void Chip8CPU::opcode_00EE(WORD opcode)
 
 void Chip8CPU::opcode_1NNN(WORD opcode)
 {
-    programCounter = opcode & 0X0FFF;
+    WORD NNN = opcode & 0X0FFF;
+    programCounter = NNN;
 }
 
 void Chip8CPU::opcode_2NNN(WORD opcode)
 {
+    WORD NNN = opcode & 0X0FFF;
     stackM.push(programCounter);
-    programCounter = opcode & 0x0FFF;
+    programCounter = NNN;
 }
 
 void Chip8CPU::opcode_3XNN(WORD opcode)
 {
-    if (registers[opcode & 0X0F00 >> 8] == opcode & 0X00FF)
+    BYTE X = (opcode & 0X0F00) >> 8;
+    WORD NN = opcode & 0X00FF;
+    if (registers[X] == NN)
         programCounter += 2;
 }
 
 void Chip8CPU::opcode_4XNN(WORD opcode)
 {
-    if (registers[opcode & 0X0F00 >> 8] != opcode & 0X00FF)
+    BYTE X = (opcode & 0X0F00) >> 8;
+    WORD NN = opcode & 0X00FF;
+    if (registers[X] != NN)
         programCounter += 2;
 }
 
 void Chip8CPU::opcode_5XY0(WORD opcode)
 {
-    if (registers[opcode & 0X0F00 >> 8] == registers[opcode & 0X00F0 >> 4])
+    BYTE X = (opcode & 0X0F00) >> 8;
+    BYTE Y = (opcode & 0X00F0) >> 4;
+    if (registers[X] == registers[Y])
         programCounter += 2;
 }
 
 void Chip8CPU::opcode_6XNN(WORD opcode)
 {
-    registers[opcode & 0X0F00 >> 8] = opcode & 0X00FF;
+    BYTE X = (opcode & 0X0F00) >> 8;
+    WORD NN = opcode & 0X00FF;
+    registers[X] = NN;
 }
 
 void Chip8CPU::opcode_7XNN(WORD opcode)
 {
-    registers[opcode & 0X0F00 >> 8] += opcode & 0X00FF;
+    BYTE X = (opcode & 0X0F00) >> 8;
+    WORD NN = opcode & 0X00FF;
+    registers[X] += NN;
 }
 
 void Chip8CPU::opcodeDecode8(WORD opcode)
@@ -196,97 +243,134 @@ void Chip8CPU::opcodeDecode8(WORD opcode)
 
 void Chip8CPU::opcode_8XY0(WORD opcode)
 {
-    registers[opcode & 0X0F00 >> 8] = registers[opcode & 0X00F0 >> 4];
+    BYTE X = (opcode & 0X0F00) >> 8;
+    BYTE Y = (opcode & 0X00F0) >> 4;
+    registers[X] = registers[Y];
 }
 
 void Chip8CPU::opcode_8XY1(WORD opcode)
 {
-    registers[opcode & 0X0F00 >> 8] |= registers[opcode & 0X00F0 >> 4];
+    BYTE X = (opcode & 0X0F00) >> 8;
+    BYTE Y = (opcode & 0X00F0) >> 4;
+    registers[X] |= registers[Y];
 }
 
 void Chip8CPU::opcode_8XY2(WORD opcode)
 {
-    registers[opcode & 0X0F00 >> 8] &= registers[opcode & 0X00F0 >> 4];
+    BYTE X = (opcode & 0X0F00) >> 8;
+    BYTE Y = (opcode & 0X00F0) >> 4;
+    registers[X] &= registers[Y];
 }
 
 void Chip8CPU::opcode_8XY3(WORD opcode)
 {
-    registers[opcode & 0X0F00 >> 8] ^= registers[opcode & 0X00F0 >> 4];
+    BYTE X = (opcode & 0X0F00) >> 8;
+    BYTE Y = (opcode & 0X00F0) >> 4;
+    registers[X] ^= registers[Y];
 }
 
 void Chip8CPU::opcode_8XY4(WORD opcode)
 {
-    registers[opcode & 0X0F00 >> 8] += registers[opcode & 0X00F0 >> 4];
-    registers[0xF] = registers[opcode & 0X0F00 >> 8] > registers[opcode & 0X00F0 >> 4];
+    BYTE X = (opcode & 0X0F00) >> 8;
+    BYTE Y = (opcode & 0X00F0) >> 4;
+    unsigned int sum = registers[X] + registers[Y];
+    if (sum > 0xFF)
+    {
+        registers[0xF] = 1;
+    }
+    else
+    {
+        registers[0xF] = 0;
+    }
+    registers[X] = sum & 0xFF;
 }
 
 void Chip8CPU::opcode_8XY5(WORD opcode)
 {
-    registers[0xF] = registers[opcode & 0X0F00 >> 8] >= registers[opcode & 0X00F0 >> 4];
-    registers[opcode & 0X0F00 >> 8] -= registers[opcode & 0X00F0 >> 4];
+    BYTE X = (opcode & 0X0F00) >> 8;
+    BYTE Y = (opcode & 0X00F0) >> 4;
+    registers[0xF] = registers[X] >= registers[Y];
+    registers[X] -= registers[Y];
 }
 
 void Chip8CPU::opcode_8XY6(WORD opcode)
 {
-    registers[0xF] = registers[opcode & 0X0F00 >> 8] & 0x1;
-    registers[opcode & 0X0F00 >> 4] >>= 1;
+    BYTE X = (opcode & 0X0F00) >> 8;
+    BYTE Y = (opcode & 0X00F0) >> 4;
+    registers[0xF] = registers[X] & 0x1;
+    registers[Y] >>= 1;
 }
 
 void Chip8CPU::opcode_8XY7(WORD opcode)
 {
-    registers[0xF] = registers[opcode & 0X0F00 >> 8] <= registers[opcode & 0X00F0 >> 4];
-    registers[opcode & 0X0F00 >> 8] = registers[opcode & 0X00F0 >> 4] - registers[opcode & 0X0F00 >> 8];
+    BYTE X = (opcode & 0X0F00) >> 8;
+    BYTE Y = (opcode & 0X00F0) >> 4;
+    registers[0xF] = registers[X] <= registers[Y];
+    registers[X] = registers[Y] - registers[X];
 }
 
 void Chip8CPU::opcode_8XYE(WORD opcode)
 {
-    registers[0xF] = registers[opcode & 0X0F00 >> 8] & 0x8000;
-    registers[opcode & 0X0F00 >> 8] <<= 1;
+    BYTE X = (opcode & 0X0F00) >> 8;
+    BYTE Y = (opcode & 0X00F0) >> 4;
+    registers[0xF] = (registers[X] & 0x80) >> 7;
+    registers[X] <<= 1;
 }
 
 void Chip8CPU::opcode_9XY0(WORD opcode)
 {
-    if (registers[opcode & 0X0F00 >> 8] != registers[opcode & 0X00F0 >> 4])
+    BYTE X = (opcode & 0X0F00) >> 8;
+    BYTE Y = (opcode & 0X00F0) >> 4;
+    if (registers[X] != registers[Y])
         programCounter += 2;
 }
 
 void Chip8CPU::opcode_ANNN(WORD opcode)
 {
-    addressRegisterI = opcode & 0X0FFF;
+    WORD NNN = opcode & 0X0FFF;
+    addressRegisterI = NNN;
 }
 
 void Chip8CPU::opcode_BNNN(WORD opcode)
 {
-    programCounter = registers[0X0] + (opcode & 0X0FFF);
+    WORD NNN = opcode & 0X0FFF;
+    programCounter = registers[0X0] + (NNN);
 }
 
-void Chip8CPU::opcode_CNNN(WORD opcode)
+void Chip8CPU::opcode_CXNN(WORD opcode)
 {
-    registers[opcode & 0X0F00 >> 8] = rand() % 255 + (opcode & 0X00FF);
+    BYTE X = (opcode & 0X0F00) >> 8;
+    WORD NN = opcode & 0X00FF;
+    registers[X] = rand() % 255 + (NN);
 }
 
 void Chip8CPU::opcode_DXYN(WORD opcode)
 {
-    BYTE X = registers[opcode & 0X0F00 >> 8];
-    BYTE Y = registers[opcode & 0X00F0 >> 4];
-    WORD height = opcode & 0X000F;
+    BYTE X = (opcode & 0X0F00) >> 8;
+    BYTE Y = (opcode & 0X00F0) >> 4;
+    BYTE XCoord = registers[X];
+    BYTE YCoord = registers[Y];
+    BYTE height = opcode & 0X000F;
     registers[0XF] = 0;
 
-    for (WORD h = 0; h < height; h++)
+    for (BYTE h = 0; h < height; h++)
     {
         BYTE data = memory[addressRegisterI + h];
-        int xpixelinv = 7;
-        int xpixel = 0;
-        for (xpixel = 0; xpixel < 8; xpixel++, xpixelinv--)
+        BYTE y = YCoord + h;
+        for (BYTE x = 0; x < 8; x++)
         {
-            int mask = 1 << xpixelinv;
-            if (data & mask)
+
+            BYTE xloc = x + XCoord;
+            BYTE tempPixel = pixels[y][xloc] ? 1 : 0;
+            BYTE tempBit = (data >> (7 - x)) & 0x1;
+            if (tempPixel ^ tempBit == 1)
             {
-                int x = X + xpixel;
-                int y = Y + h;
-                if (screenData[x + y * 64] == 1)
-                    registers[0xF] = 1;
-                screenData[x + y * 64] ^= 1;
+                pixels[y][xloc] = 0xFFFFFF;
+                // return;
+            }
+            else
+            {
+                registers[0xF] = 1;
             }
         }
     }
@@ -390,7 +474,7 @@ void Chip8CPU::opcode_FX29(WORD opcode)
 
 void Chip8CPU::opcode_FX33(WORD opcode)
 {
-    WORD X = opcode & 0X0F00 >> 8;
+    BYTE X = opcode & 0X0F00 >> 8;
 
     WORD value = registers[X];
 
@@ -405,7 +489,7 @@ void Chip8CPU::opcode_FX33(WORD opcode)
 
 void Chip8CPU::opcode_FX55(WORD opcode)
 {
-    WORD X = opcode & 0X0F00 >> 8;
+    BYTE X = opcode & 0X0F00 >> 8;
     for (WORD i = 0; i <= X; i++)
     {
         memory[addressRegisterI + i] = registers[i];
@@ -414,7 +498,7 @@ void Chip8CPU::opcode_FX55(WORD opcode)
 
 void Chip8CPU::opcode_FX65(WORD opcode)
 {
-    WORD X = opcode & 0X0F00 >> 8;
+    BYTE X = opcode & 0X0F00 >> 8;
     for (WORD i = 0; i <= X; i++)
     {
         registers[i] = memory[addressRegisterI + i];
@@ -427,7 +511,7 @@ int getKey()
 
 void Chip8CPU::test()
 {
-    printf("%x\n", programCounter);
+    printf("0X%x\n", programCounter);
 }
 
 KeyPress getKeysLoop()
