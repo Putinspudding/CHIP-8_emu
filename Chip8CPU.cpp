@@ -20,6 +20,10 @@ bool Chip8CPU::loadRom()
             pixels[i][j] = 0x0;
         }
     }
+    for (int i = 0; i < 105; i++)
+    {
+        memory[i] = fontset[i];
+    }
     return true;
 }
 
@@ -391,8 +395,9 @@ void Chip8CPU::opcodeDecodeE(WORD opcode)
 
 void Chip8CPU::opcode_EX9E(WORD opcode)
 {
+    BYTE X = (opcode & 0X0F00) >> 8;
     BYTE key = getKeysLoop();
-    if (key == registers[opcode & 0X0F00 >> 8])
+    if (key == registers[X])
     {
         programCounter += 2;
     }
@@ -400,8 +405,9 @@ void Chip8CPU::opcode_EX9E(WORD opcode)
 
 void Chip8CPU::opcode_EXA1(WORD opcode)
 {
+    BYTE X = (opcode & 0X0F00) >> 8;
     BYTE key = getKeysLoop();
-    if (key != registers[opcode & 0X0F00 >> 8])
+    if (key != registers[X])
     {
         programCounter += 2;
     }
@@ -443,38 +449,44 @@ void Chip8CPU::opcodeDecodeF(WORD opcode)
 
 void Chip8CPU::opcode_FX07(WORD opcode)
 {
-    registers[opcode & 0X0F00 >> 8] = delayTimer;
+    BYTE X = (opcode & 0X0F00) >> 8;
+    registers[X] = delayTimer;
 }
 
 void Chip8CPU::opcode_FX0A(WORD opcode)
 {
+    BYTE X = (opcode & 0X0F00) >> 8;
     BYTE key = getKeysLoop();
-    registers[opcode & 0X0F00 >> 8] = key;
+    registers[X] = key;
 }
 
 void Chip8CPU::opcode_FX15(WORD opcode)
 {
-    delayTimer = registers[opcode & 0X0F00 >> 8];
+    BYTE X = (opcode & 0X0F00) >> 8;
+    delayTimer = registers[X];
 }
 
 void Chip8CPU::opcode_FX18(WORD opcode)
 {
-    soundTimer = registers[opcode & 0X0F00 >> 8];
+    BYTE X = (opcode & 0X0F00) >> 8;
+    soundTimer = registers[X];
 }
 
 void Chip8CPU::opcode_FX1E(WORD opcode)
 {
-    addressRegisterI += registers[opcode & 0X0F00 >> 8];
+    BYTE X = (opcode & 0X0F00) >> 8;
+    addressRegisterI += registers[X];
 }
 
 void Chip8CPU::opcode_FX29(WORD opcode)
 {
-    addressRegisterI = registers[opcode & 0x0F00 >> 8] * 5;
+    BYTE X = (opcode & 0X0F00) >> 8;
+    addressRegisterI = registers[X] * 5;
 }
 
 void Chip8CPU::opcode_FX33(WORD opcode)
 {
-    BYTE X = opcode & 0X0F00 >> 8;
+    BYTE X = (opcode & 0X0F00) >> 8;
 
     WORD value = registers[X];
 
@@ -489,7 +501,7 @@ void Chip8CPU::opcode_FX33(WORD opcode)
 
 void Chip8CPU::opcode_FX55(WORD opcode)
 {
-    BYTE X = opcode & 0X0F00 >> 8;
+    BYTE X = (opcode & 0X0F00) >> 8;
     for (WORD i = 0; i <= X; i++)
     {
         memory[addressRegisterI + i] = registers[i];
@@ -498,7 +510,7 @@ void Chip8CPU::opcode_FX55(WORD opcode)
 
 void Chip8CPU::opcode_FX65(WORD opcode)
 {
-    BYTE X = opcode & 0X0F00 >> 8;
+    BYTE X = (opcode & 0X0F00) >> 8;
     for (WORD i = 0; i <= X; i++)
     {
         registers[i] = memory[addressRegisterI + i];
