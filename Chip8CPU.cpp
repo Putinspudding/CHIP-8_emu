@@ -4,6 +4,43 @@
 #include <iostream>
 #include <string.h>
 
+std::unordered_map<BYTE, SDL_Scancode> keysMapping = {
+    {0,
+     SDL_SCANCODE_0},
+    {1,
+     SDL_SCANCODE_1},
+    {2,
+     SDL_SCANCODE_2},
+    {3,
+     SDL_SCANCODE_3},
+    {4,
+     SDL_SCANCODE_4},
+    {5,
+     SDL_SCANCODE_Q},
+    {6,
+     SDL_SCANCODE_W},
+    {7,
+     SDL_SCANCODE_E},
+    {8,
+     SDL_SCANCODE_R},
+    {9,
+     SDL_SCANCODE_A},
+    {10,
+     SDL_SCANCODE_S},
+    {11,
+     SDL_SCANCODE_D},
+    {12,
+     SDL_SCANCODE_F},
+    {13,
+     SDL_SCANCODE_Z},
+    {14,
+     SDL_SCANCODE_X},
+    {15,
+     SDL_SCANCODE_C},
+    {16,
+     SDL_SCANCODE_V},
+};
+
 bool Chip8CPU::loadRom()
 {
     FILE *in;
@@ -300,16 +337,18 @@ void Chip8CPU::opcode_8XY5(WORD opcode)
 void Chip8CPU::opcode_8XY6(WORD opcode)
 {
     BYTE X = (opcode & 0X0F00) >> 8;
-    BYTE Y = (opcode & 0X00F0) >> 4;
     registers[0xF] = registers[X] & 0x1;
-    registers[Y] >>= 1;
+    registers[X] >>= 1;
 }
 
 void Chip8CPU::opcode_8XY7(WORD opcode)
 {
     BYTE X = (opcode & 0X0F00) >> 8;
     BYTE Y = (opcode & 0X00F0) >> 4;
-    registers[0xF] = registers[X] <= registers[Y];
+    if (registers[Y] < registers[X])
+        registers[0xF] = 0;
+    else
+        registers[0xF] = 1;
     registers[X] = registers[Y] - registers[X];
 }
 
@@ -374,6 +413,7 @@ void Chip8CPU::opcode_DXYN(WORD opcode)
             }
             else
             {
+                pixels[y][xloc] = 0;
                 registers[0xF] = 1;
             }
         }
@@ -395,9 +435,11 @@ void Chip8CPU::opcodeDecodeE(WORD opcode)
 
 void Chip8CPU::opcode_EX9E(WORD opcode)
 {
+    const Uint8 *state = SDL_GetKeyboardState(NULL);
     BYTE X = (opcode & 0X0F00) >> 8;
-    BYTE key = getKeysLoop();
-    if (key == registers[X])
+    SDL_Scancode keyCode = keysMapping[registers[X]];
+    // BYTE key = getKeysLoop();
+    if (state[keyCode])
     {
         programCounter += 2;
     }
@@ -405,9 +447,11 @@ void Chip8CPU::opcode_EX9E(WORD opcode)
 
 void Chip8CPU::opcode_EXA1(WORD opcode)
 {
+    const Uint8 *state = SDL_GetKeyboardState(NULL);
     BYTE X = (opcode & 0X0F00) >> 8;
-    BYTE key = getKeysLoop();
-    if (key != registers[X])
+    SDL_Scancode keyCode = keysMapping[registers[X]];
+    // BYTE key = getKeysLoop();
+    if (!state[keyCode])
     {
         programCounter += 2;
     }
@@ -515,10 +559,6 @@ void Chip8CPU::opcode_FX65(WORD opcode)
     {
         registers[i] = memory[addressRegisterI + i];
     }
-}
-
-int getKey()
-{
 }
 
 void Chip8CPU::test()
