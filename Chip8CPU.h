@@ -1,6 +1,8 @@
 #pragma once
 #include <stack>
 #include <cstdint>
+#include <unordered_map>
+#include <SDL2/SDL.h>
 
 typedef unsigned char BYTE;
 typedef unsigned short int WORD;
@@ -25,6 +27,8 @@ const BYTE fontset[] = {
     0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
     0xF0, 0x80, 0xF0, 0x80, 0x80  // F
 };
+
+extern std::unordered_map<BYTE, SDL_Scancode> keysMapping;
 
 class Chip8CPU
 {
@@ -113,3 +117,5 @@ enum KeyPress
 
 };
 KeyPress getKeysLoop();
+
+KeyPress getKeysNoLoop();
